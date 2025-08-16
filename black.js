@@ -52,41 +52,46 @@ plugin({
 });
 
 
-let autoSendIntervals = {}; // store active loops per chat
+let autoSendLoops = {}; // store active loops per chat
 
 plugin({
-    pattern: 'asend ?(.*)',
+    pattern: 'autosend ?(.*)',
     fromMe: mode,
-    desc: "Continuously send a text until stopped"
+    desc: "Continuously send a text until stopped (superfast)"
 }, async (message, match) => {
     if (!match) return await message.send("_❌ Please provide text to auto-send._");
 
-    // if already running in this chat
-    if (autoSendIntervals[message.jid]) {
+    if (autoSendLoops[message.jid]) {
         return await message.send("_⚠️ Auto-send already running here. Use .stopautosend to stop it._");
     }
 
     const text = match;
 
-    await message.send(`✅ Auto-send started.\nWill keep sending: *${text}*\nUse .stopautosend to stop.`);
+    await message.send(`✅ Auto-send started (superfast).\nWill keep sending: *${text}*\nUse .stopautosend to stop.`);
 
-    autoSendIntervals[message.jid] = setInterval(async () => {
+    // recursive async loop instead of setInterval
+    const loop = async () => {
+        if (!autoSendLoops[message.jid]) return; // stopped
         try {
             await message.send(text);
         } catch (e) {
             console.error("Auto-send error:", e);
         }
-    }, 3000); // every 3 seconds
+        // immediately schedule next send
+        setImmediate(loop);
+    };
+
+    autoSendLoops[message.jid] = true;
+    loop();
 });
 
 plugin({
-    pattern: 'astop',
+    pattern: 'stopautosend',
     fromMe: mode,
     desc: "Stop auto-sending messages"
 }, async (message) => {
-    if (autoSendIntervals[message.jid]) {
-        clearInterval(autoSendIntervals[message.jid]);
-        delete autoSendIntervals[message.jid];
+    if (autoSendLoops[message.jid]) {
+        delete autoSendLoops[message.jid];
         return await message.send("🛑 Auto-send stopped.");
     } else {
         return await message.send("_⚠️ No auto-send running in this chat._");

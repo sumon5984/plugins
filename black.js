@@ -50,3 +50,45 @@ plugin({
       return message.send(e);
    }
 });
+
+
+let autoSendIntervals = {}; // store active loops per chat
+
+plugin({
+    pattern: 'asend ?(.*)',
+    fromMe: mode,
+    desc: "Continuously send a text until stopped"
+}, async (message, match) => {
+    if (!match) return await message.send("_❌ Please provide text to auto-send._");
+
+    // if already running in this chat
+    if (autoSendIntervals[message.jid]) {
+        return await message.send("_⚠️ Auto-send already running here. Use .stopautosend to stop it._");
+    }
+
+    const text = match;
+
+    await message.send(`✅ Auto-send started.\nWill keep sending: *${text}*\nUse .stopautosend to stop.`);
+
+    autoSendIntervals[message.jid] = setInterval(async () => {
+        try {
+            await message.send(text);
+        } catch (e) {
+            console.error("Auto-send error:", e);
+        }
+    }, 3000); // every 3 seconds
+});
+
+plugin({
+    pattern: 'astop',
+    fromMe: mode,
+    desc: "Stop auto-sending messages"
+}, async (message) => {
+    if (autoSendIntervals[message.jid]) {
+        clearInterval(autoSendIntervals[message.jid]);
+        delete autoSendIntervals[message.jid];
+        return await message.send("🛑 Auto-send stopped.");
+    } else {
+        return await message.send("_⚠️ No auto-send running in this chat._");
+    }
+});

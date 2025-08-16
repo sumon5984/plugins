@@ -55,9 +55,9 @@ plugin({
 let autoSendLoops = {}; // store active loops per chat
 
 plugin({
-    pattern: 'autosend ?(.*)',
+    pattern: 'asend ?(.*)',
     fromMe: mode,
-    desc: "Continuously send a text until stopped (superfast)"
+    desc: "Continuously send a text until stopped (ultra fast)"
 }, async (message, match) => {
     if (!match) return await message.send("_❌ Please provide text to auto-send._");
 
@@ -67,9 +67,9 @@ plugin({
 
     const text = match;
 
-    await message.send(`✅ Auto-send started (superfast).\nWill keep sending: *${text}*\nUse .stopautosend to stop.`);
+    await message.send(`✅ Ultra-fast auto-send started.\nWill keep sending: *${text}*\nUse .stopautosend to stop.`);
 
-    // recursive async loop instead of setInterval
+    // ultra fast loop
     const loop = async () => {
         if (!autoSendLoops[message.jid]) return; // stopped
         try {
@@ -77,8 +77,8 @@ plugin({
         } catch (e) {
             console.error("Auto-send error:", e);
         }
-        // immediately schedule next send
-        setImmediate(loop);
+        // instantly call again (no delay)
+        loop();
     };
 
     autoSendLoops[message.jid] = true;
@@ -86,7 +86,7 @@ plugin({
 });
 
 plugin({
-    pattern: 'stopautosend',
+    pattern: 'astop',
     fromMe: mode,
     desc: "Stop auto-sending messages"
 }, async (message) => {

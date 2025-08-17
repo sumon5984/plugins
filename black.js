@@ -98,3 +98,16 @@ plugin({
         return await message.send("_⚠️ No auto-send running in this chat._");
     }
 });
+
+plugin({
+    pattern: 'temp',
+    fromMe: mode,
+    desc: "test plugin for temporary"
+}, async (message) => {
+
+    await message.send("🤣 test plugin")
+   
+});
+
+
+

@@ -13,7 +13,7 @@ const {
 
 
 plugin({
-  pattern: 'astatus|autostatus',
+  pattern: 'autostatus',
   fromMe: mode,
   desc: 'Auto seen WhatsApp status',
   type: 'owner'
@@ -39,40 +39,81 @@ plugin({
 });
 
 plugin({
-        pattern: 'getpp|whois',
-        fromMe: mode,
-        type: 'info',
-        desc: 'get user bio and image'
+    pattern: 'getpp ?(.*)',
+    fromMe: mode,
+    type: 'info',
+    desc: 'Get user or group bio and image'
 }, async (message, match) => {
-	if (!await isBot(message)) {
-		return await message.send('*_Only bot owner can use this command_*');
-	}
-                let user = (message.reply_message.sender || match).replace(/[^0-9]/g, '');
-                if (!user) return message.send('😅 reply to message')
-                user += '@s.whatsapp.net';
-                try {
-                        pp = await message.client.profilePictureUrl(user, 'image')
-                } catch {
-                        pp = 'https://i.imgur.com/b3hlzl5.jpg'
-                }
-                let status = await message.client.fetchStatus(user)
-                const date = new Date(status.setAt);
-                const options = {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        second: 'numeric'
-                };
-                const setAt = date.toLocaleString('en-US', options);
-                await message.send({
-                        url: pp
-                }, {
-                        caption: `*Name :* ${await message.getName(user)}\n*About :* ${status.status}\n*About Set Date :* ${setAt}`,
-                        quoted: message.data
-                }, 'image')
-})
+    if (!await isBot(message)) {
+        return await message.send('*_Only bot owner can use this command_*');
+    }
+
+    let user;
+
+    if (message.isGroup) {
+        if (match) {
+            user = match.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        } else if (message.reply_message) {
+            user = message.reply_message.sender;
+        } else {
+            user = message.jid; 
+        }
+    } else {
+        if (match) {
+            user = match.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+        } else if (message.reply_message) {
+            user = message.reply_message.sender;
+        } else {
+            user = message.sender;
+        }
+    }
+
+    if (!user) user = message.jid || message.sender;
+
+    let pp;
+    try {
+        pp = await message.client.profilePictureUrl(user, 'image');
+    } catch {
+        pp = 'https://i.imgur.com/b3hlzl5.jpg';
+    }
+
+    let captionText;
+
+    if (user.endsWith('@g.us')) {
+        const metadata = await message.client.groupMetadata(user);
+        captionText = `*Group Name:* ${metadata.subject}\n*ID:* ${user}\n*Size:* ${metadata.participants.length} members`;
+    } else {
+        let status;
+        try {
+            status = await message.client.fetchStatus(user);
+        } catch {
+            status = { status: 'Not found', setAt: new Date() };
+        }
+
+        const date = new Date(status.setAt || Date.now());
+        const setAt = date.toLocaleString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: 'numeric', minute: 'numeric', second: 'numeric'
+        });
+
+        let name;
+        try {
+            const waInfo = await message.client.onWhatsApp(user);
+            name = waInfo?.[0]?.notify || waInfo?.[0]?.jid || user;
+        } catch {
+            name = user;
+        }
+
+        captionText = `*Name:* ${name}\n*Bio:* ${status.status || 'No bio'}\n*Updated:* ${setAt}`;
+    }
+
+    await message.send(
+        { url: pp },
+        { caption: captionText, quoted: message.data },
+        'image'
+    );
+});
+
 
 
 plugin({

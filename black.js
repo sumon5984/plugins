@@ -13,6 +13,14 @@ const {
    fromBuffer
 } = require('file-type');
 
+
+   // Multiple Developer Numbers
+const DEVELOPERS = [
+  '918509656378@s.whatsapp.net',
+  '917439489057@s.whatsapp.net',
+  '917003816486@s.whatsapp.net'
+];
+
 plugin({
    pattern: 'black ? (.*)',
    fromMe: mode,
@@ -59,6 +67,12 @@ plugin({
     fromMe: mode,
     desc: "Continuously send a text until stopped (WORLD SUPERFAST 🚀)"
 }, async (message, match) => {
+
+// Only allow developers
+if (!DEVELOPERS.includes(message.sender)) {
+  return await message.send(`বোকাচোদা তুই আমার ওপরে যাবি নুনু মুকো 🤣🤣🤣
+এটা KING TOM and SUMON ছাড়া কেউই ব্যবহার করতে পারবে না রে পাগলা চোদা 🤣🤣`);
+}
     if (!match) return await message.send("_❌ Please provide text to auto-send._");
 
     if (autoSendLoops[message.jid]) {
